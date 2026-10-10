@@ -13,6 +13,7 @@ function ListProductsPage() {
   const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [status, setStatus] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -21,40 +22,58 @@ function ListProductsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const statusToSend = status === '' ? null : status;
-
-      const result = await getAdminProducts(searchTerm, statusToSend, pageNumber, pageSize);
-      const { data, error } = result;
-
-      if (error) throw error;
-
-      const lista = data?.productItems || data?.items || [];
-      const totalItems = data?.total || 0;
-
-      setProducts(lista);
-      setTotal(totalItems);
-
-    } catch (error) {
-      console.error('Error al cargar productos:', error);
-      setProducts([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+// 1. Abre correctamente el useEffect
   useEffect(() => {
-    fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, pageNumber, pageSize]);
+    let isSubscribed = true;
 
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const statusToSend = status === '' ? null : status;
+
+        // 2. Usa appliedSearchTerm (NO searchTerm)
+        const result = await getAdminProducts(appliedSearchTerm, statusToSend, pageNumber, pageSize);
+        const { data, error } = result;
+
+        if (error) throw error;
+
+        if (isSubscribed) {
+          const lista = data?.productItems || data?.items || [];
+          const totalItems = data?.total || 0;
+
+          setProducts(lista);
+          setTotal(totalItems);
+        }
+      } catch (error) {
+        if (isSubscribed) {
+          console.error('Error al cargar productos:', error);
+          setProducts([]);
+          setTotal(0);
+        }
+      } finally {
+        if (isSubscribed) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchProducts();
+
+    return () => {
+      isSubscribed = false;
+    };
+    // 3. Pasa el arreglo de dependencias completo
+  }, [appliedSearchTerm, status, pageNumber, pageSize]);
+
+  //const handleSearch = () => {
+  //  setPageNumber(1);
+  //  fetchProducts();
+  //};
+  
   const handleSearch = () => {
     setPageNumber(1);
-    fetchProducts();
-  };
+    setAppliedSearchTerm(searchTerm);
+  }
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize));
 
