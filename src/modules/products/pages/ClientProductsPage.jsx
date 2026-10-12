@@ -10,6 +10,7 @@ function ClientProductsPage() {
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(8);
   const [loading, setLoading] = useState(false);
@@ -29,26 +30,55 @@ function ClientProductsPage() {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
+  useEffect(() => {
+  let isActive = true;
+
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await getPublicProducts(searchTerm, pageNumber, pageSize);
+
+      const { data, error } = await getPublicProducts(
+        appliedSearchTerm,
+        pageNumber,
+        pageSize
+      );
 
       if (error) throw error;
+      if (!isActive) return;
 
       setTotal(data?.total || 0);
       setProducts(data?.productItems || []);
     } catch (error) {
-      setTotal(0); setProducts([]);
+      if (!isActive) return;
+
+      setTotal(0);
+      setProducts([]);
       console.error('Error al cargar productos:', error);
     } finally {
-      setLoading(false);
+      if (isActive) setLoading(false);
     }
   };
 
-  useEffect(() => { fetchProducts(); }, [pageNumber, pageSize, searchTerm]);
+    fetchProducts();
 
-  const handleSearch = () => { setPageNumber(1); setIsMenuOpen(false); };
+    return () => {
+      isActive = false;
+    };
+  }, [appliedSearchTerm, pageNumber, pageSize]);
+
+  const handleSearch = () => {
+    setPageNumber(1);
+    setAppliedSearchTerm(searchTerm);
+    setIsMenuOpen(false);
+  };
+
+  const handleShowAllProducts = () => {
+    setSearchTerm('');
+    setAppliedSearchTerm('');
+    setPageNumber(1);
+    setIsMenuOpen(false);
+  };
+
   const getQuantity = (productId) => quantities[productId] ?? 0;
   const changeQuantity = (productId, delta) => setQuantities((prev) => ({ ...prev, [productId]: Math.max(0, (prev[productId] || 0) + delta) }));
 
@@ -117,7 +147,7 @@ function ClientProductsPage() {
             </div>
 
             <nav className="hidden md:flex gap-4 text-sm font-medium text-gray-500">
-              <button onClick={() => { setSearchTerm(''); setPageNumber(1); fetchProducts(); }} className="text-black cursor-pointer bg-gray-100 px-3 py-1 rounded-md border-none">Productos</button>
+              <button onClick={handleShowAllProducts} className="text-black cursor-pointer bg-gray-100 px-3 py-1 rounded-md border-none">Productos</button>
               <button onClick={() => navigate('/cart')} className="hover:text-black cursor-pointer px-3 py-1">Carrito de compras</button>
             </nav>
             <button className="md:hidden text-2xl p-2 focus:outline-none ml-auto md:ml-0" onClick={() => setIsMenuOpen(!isMenuOpen)}>{isMenuOpen ? '✕' : '☰'}</button>
@@ -150,7 +180,7 @@ function ClientProductsPage() {
         {isMenuOpen && (
           <div className="md:hidden mt-4 pt-4 border-t border-gray-100 flex flex-col gap-4 animate-fadeIn">
             <nav className="flex flex-col gap-2">
-              <button onClick={() => { setSearchTerm(''); setPageNumber(1); fetchProducts(); setIsMenuOpen(false); }} className="text-left px-4 py-2 hover:bg-gray-50 rounded-md font-medium">Productos</button>
+              <button onClick={handleShowAllProducts} className="text-left px-4 py-2 hover:bg-gray-50 rounded-md font-medium">Productos</button>
               <button onClick={() => { navigate('/cart'); setIsMenuOpen(false); }} className="text-left px-4 py-2 hover:bg-gray-50 rounded-md font-medium">Carrito de compras</button>
             </nav>
             <div className="flex flex-col gap-2 px-4 pb-2">
@@ -176,7 +206,7 @@ function ClientProductsPage() {
         ) : products.length === 0 ? (
           <div className="text-center py-20 bg-gray-50 rounded-lg">
             <p className="text-gray-500 mb-2">No se encontraron productos.</p>
-            <button onClick={() => { setSearchTerm(''); handleSearch(); }} className="text-purple-600 underline">Ver todos</button>
+            <button onClick={handleShowAllProducts} className="text-purple-600 underline">Ver todos</button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
