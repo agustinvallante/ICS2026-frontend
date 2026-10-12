@@ -1,15 +1,17 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from './modules/auth/context/AuthProvider';
-import LoginPage from './modules/auth/pages/LoginPage';
-import Dashboard from './modules/templates/components/Dashboard';
 import ProtectedRoute from './modules/auth/components/ProtectedRoute';
-import ListOrdersPage from './modules/orders/pages/ListOrdersPage';
-import Home from './modules/home/pages/Home';
-import ListProductsPage from './modules/products/pages/ListProductsPage';
-import CreateProductPage from './modules/products/pages/CreateProductPage';
-import ClientProductsPage from './modules/products/pages/ClientProductsPage';
-import CartPage from './modules/orders/pages/CartPage';
 import { Toaster } from 'sonner';
+
+const LoginPage = lazy(() => import('./modules/auth/pages/LoginPage'));
+const Dashboard = lazy(() => import('./modules/templates/components/Dashboard'));
+const ListOrdersPage = lazy(() => import('./modules/orders/pages/ListOrdersPage'));
+const Home = lazy(() => import('./modules/home/pages/Home'));
+const ListProductsPage = lazy(() => import('./modules/products/pages/ListProductsPage'));
+const CreateProductPage = lazy(() => import('./modules/products/pages/CreateProductPage'));
+const ClientProductsPage = lazy(() => import('./modules/products/pages/ClientProductsPage'));
+const CartPage = lazy(() => import('./modules/orders/pages/CartPage'));
 
 function App() {
   const router = createBrowserRouter([
@@ -50,7 +52,9 @@ function App() {
   return (
     <AuthProvider>
       <Toaster position="top-right" richColors />
-      <RouterProvider router={router} />
+      <Suspense fallback={<div role="status">Cargando página...</div>}>
+        <RouterProvider router={router} />
+      </Suspense>
     </AuthProvider>
   );
 }
