@@ -35,40 +35,40 @@ function ListOrdersPage() {
   const [status, setStatus] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  
+
   const [total, setTotal] = useState(0);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
-        try {
-          setLoading(true);
+      try {
+        setLoading(true);
 
-          const filters = {
-            page: pageNumber,
-            pageSize,
-            search: appliedSearchTerm,
-          };
+        const filters = {
+          page: pageNumber,
+          pageSize,
+          search: appliedSearchTerm,
+        };
 
-          if (status !== '') {
-            filters.status = status;
-          }
-
-          const data = await listOrders(filters);
-          const listaFinal = data?.items || data?.productItems || [];
-
-          setTotal(data?.total || 0);
-          setOrders(listaFinal);
-        } catch (error) {
-          console.error('Error al cargar órdenes:', error);
-        } finally {
-          setLoading(false);
+        if (status !== '') {
+          filters.status = status;
         }
-      };
 
-      fetchOrders();
-    }, [appliedSearchTerm, status, pageNumber, pageSize]);
+        const data = await listOrders(filters);
+        const listaFinal = data?.items || data?.productItems || [];
+
+        setTotal(data?.total || 0);
+        setOrders(listaFinal);
+      } catch (error) {
+        console.error('Error al cargar órdenes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [appliedSearchTerm, status, pageNumber, pageSize]);
 
   const totalPages = Math.ceil(total / pageSize);
 

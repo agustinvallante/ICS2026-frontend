@@ -22,7 +22,7 @@ function ListProductsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-// 1. Abre correctamente el useEffect
+  // 1. Abre correctamente el useEffect
   useEffect(() => {
     let isSubscribed = true;
 
@@ -69,11 +69,11 @@ function ListProductsPage() {
   //  setPageNumber(1);
   //  fetchProducts();
   //};
-  
+
   const handleSearch = () => {
     setPageNumber(1);
     setAppliedSearchTerm(searchTerm);
-  }
+  };
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize));
 

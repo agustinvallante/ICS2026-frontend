@@ -31,33 +31,34 @@ function ClientProductsPage() {
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
   useEffect(() => {
-  let isActive = true;
+    let isActive = true;
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
 
-      const { data, error } = await getPublicProducts(
-        appliedSearchTerm,
-        pageNumber,
-        pageSize
-      );
+        const { data, error } = await getPublicProducts(
+          appliedSearchTerm,
+          pageNumber,
+          pageSize,
+        );
 
-      if (error) throw error;
-      if (!isActive) return;
+        if (error) throw error;
 
-      setTotal(data?.total || 0);
-      setProducts(data?.productItems || []);
-    } catch (error) {
-      if (!isActive) return;
+        if (!isActive) return;
 
-      setTotal(0);
-      setProducts([]);
-      console.error('Error al cargar productos:', error);
-    } finally {
-      if (isActive) setLoading(false);
-    }
-  };
+        setTotal(data?.total || 0);
+        setProducts(data?.productItems || []);
+      } catch (error) {
+        if (!isActive) return;
+
+        setTotal(0);
+        setProducts([]);
+        console.error('Error al cargar productos:', error);
+      } finally {
+        if (isActive) setLoading(false);
+      }
+    };
 
     fetchProducts();
 
