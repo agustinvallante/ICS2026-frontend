@@ -31,68 +31,50 @@ const getStatusChipClass = (status) => {
 function ListOrdersPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [status, setStatus] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
+  
   const [total, setTotal] = useState(0);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    const fetchOrders = async () => {
+        try {
+          setLoading(true);
 
-      const filters = {
-        page: pageNumber,
-        pageSize: pageSize,
-        search: searchTerm,
+          const filters = {
+            page: pageNumber,
+            pageSize,
+            search: appliedSearchTerm,
+          };
+
+          if (status !== '') {
+            filters.status = status;
+          }
+
+          const data = await listOrders(filters);
+          const listaFinal = data?.items || data?.productItems || [];
+
+          setTotal(data?.total || 0);
+          setOrders(listaFinal);
+        } catch (error) {
+          console.error('Error al cargar órdenes:', error);
+        } finally {
+          setLoading(false);
+        }
       };
 
-      if (status !== '') {
-        filters.status = status;
-      }
-
-      console.log('1. Enviando filtros al servicio:', filters);
-
-      const data = await listOrders(filters);
-
-      console.log('2. Respuesta del Backend:', data);
-      console.log('3. Chequeo de propiedades: ');
-      console.log('   - data.total:', data?.total);
-      console.log('   - data.items:', data?.items);
-      console.log('   - data.productItems:', data?.productItems);
-
-      const listaFinal = data?.items || data?.productItems || [];
-
-      console.log('4. Lista final a guardar en estado:', listaFinal);
-
-      if (listaFinal.length === 0) {
-        console.warn('La lista está vacía. ¿La base de datos tiene órdenes?');
-      }
-
-      setTotal(data?.total || 0);
-      setOrders(listaFinal);
-
-    } catch (error) {
-      console.error(' Error  en fetchOrders:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-    //Lo silencio porque si hago que le quiere se puede generar un bucle infinito
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, pageSize, pageNumber]);
+      fetchOrders();
+    }, [appliedSearchTerm, status, pageNumber, pageSize]);
 
   const totalPages = Math.ceil(total / pageSize);
 
-  const handleSearch = async () => {
-    console.log('Buscando manualmente:', searchTerm);
+  const handleSearch = () => {
     setPageNumber(1);
-    await fetchOrders();
+    setAppliedSearchTerm(searchTerm);
   };
 
   return (
