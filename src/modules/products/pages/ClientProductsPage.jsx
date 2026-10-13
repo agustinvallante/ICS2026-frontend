@@ -4,7 +4,6 @@ import { getPublicProducts } from '../services/list';
 import { toast } from 'sonner';
 import useAuth from '../../auth/hook/useAuth';
 import LoginForm from '../../auth/components/LoginForm';
-import { jwtDecode } from 'jwt-decode'; //igual que para cartPage ya que si un admin inicia sesion en la pagina cliente, lo redirige al dashboard
 
 function ClientProductsPage() {
   const [products, setProducts] = useState([]);
@@ -73,29 +72,16 @@ function ClientProductsPage() {
     changeQuantity(product.sku, -quantity);
   };
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (session) => {
+    setShowLoginModal(false);
 
-    const token = localStorage.getItem('token');
+    if (session.role === 'admin') {
+      toast.success('Bienvenido al Panel de Administración');
+      navigate('/admin/home');
 
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        //verificar el rol del usuario
-        const userRole = decoded.role || decoded.Role || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
-
-        if (userRole === 'Admin') {
-          setShowLoginModal(false);
-          toast.success('Bienvenido al Panel de Administración');
-          navigate('/admin/home');
-
-          return;
-        }
-      } catch (error) {
-        console.error('Error al verificar rol:', error);
-      }
+      return;
     }
 
-    setShowLoginModal(false);
     toast.success('Has iniciado sesión correctamente');
   };
 

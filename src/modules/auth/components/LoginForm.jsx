@@ -45,7 +45,7 @@ const LoginForm = ({ onSuccess, initiallyRegistering = false }) => {
 
     try {
       if (isRegistering) {
-        const { data: token, error: regError } = await register(username, password, email);
+        const { error: regError } = await register(username, password, email);
 
         if (regError) {
           setGeneralError(typeof regError === 'string' ? regError : 'Error al registrarse');
@@ -54,17 +54,22 @@ const LoginForm = ({ onSuccess, initiallyRegistering = false }) => {
           return;
         }
 
-        localStorage.setItem('token', token);
-        await singin(username, password);
+        const result = await singin(username, password);
 
-        if (onSuccess) onSuccess();
+        if (result.error) {
+          setGeneralError('Cuenta creada, pero no se pudo iniciar sesión. Intenta iniciar sesión.');
+
+          return;
+        }
+
+        if (onSuccess) onSuccess(result.session);
       } else {
         const result = await singin(username, password);
 
         if (result.error) {
           setGeneralError('Usuario o contraseña incorrectos.');
         } else {
-          if (onSuccess) onSuccess();
+          if (onSuccess) onSuccess(result.session);
         }
       }
     } catch (err) {
