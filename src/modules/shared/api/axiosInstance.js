@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { SESSION_INVALIDATED } from '../../auth/helpers/session';
 
 const instance = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -21,13 +22,12 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
   (config) => { return config; },
   (error) => {
-    if (error.status === 401) {
-      if (window.location.pathname.includes('/admin/')) {
-        localStorage.clear();
-        window.location.href = '/login';
-      } else {
-        localStorage.removeItem('token');
-      }
+    const requestToken = error.config?.headers?.Authorization;
+
+    if ((error.response?.status ?? error.status) === 401
+      && requestToken && requestToken === `Bearer ${localStorage.getItem('token')}`) {
+      localStorage.removeItem('token');
+      window.dispatchEvent(new Event(SESSION_INVALIDATED));
     }
 
     return Promise.reject(error);

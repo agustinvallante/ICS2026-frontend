@@ -4,11 +4,10 @@ import { createOrder } from '../services/createServices';
 import useAuth from '../../auth/hook/useAuth';
 import LoginForm from '../../auth/components/LoginForm';
 import { toast } from 'sonner';
-import { jwtDecode } from 'jwt-decode';
 
 function CartPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, customerId } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [processingOrder, setProcessingOrder] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -16,6 +15,7 @@ function CartPage() {
   const [shippingAddress, setShippingAddress] = useState('');
   const [billingAddress, setBillingAddress] = useState('');
   const [notes, setNotes] = useState('');
+  const [checkoutPending, setCheckoutPending] = useState(false);
   const [startInRegisterMode, setStartInRegisterMode] = useState(false);
 
   const openAuthModal = (isRegister) => {
@@ -59,7 +59,7 @@ function CartPage() {
   const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const totalAmount = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
-  const processOrder = async () => {
+  const processOrder = async (currentCustomerId = customerId) => {
     try {
       if (!shippingAddress.trim() || !billingAddress.trim()) {
         toast.error('Por favor completa las direcciones de envío y facturación.');
@@ -68,31 +68,15 @@ function CartPage() {
       }
 
       setProcessingOrder(true);
-      let currentUserId = user?.customerId || user?.id || user?.sub;
 
-      if (!currentUserId) {
-        const token = localStorage.getItem('token');
-
-        if (token) {
-          try {
-            const decoded = jwtDecode(token);
-
-            currentUserId = decoded.customerId || decoded.id || decoded.sub;
-          } catch (e) {
-            console.error('Error decodificando token manualmente', e);
-          }
-        }
-      }
-
-      if (!currentUserId) {
+      if (!currentCustomerId) {
         toast.error('Error de sesión. Por favor inicia sesión nuevamente.');
-        setProcessingOrder(false);
 
         return;
       }
 
       const orderPayload = {
-        customerId: currentUserId,
+        customerId: currentCustomerId,
         shippingAddress,
         billingAddress,
         notes,
@@ -126,6 +110,7 @@ function CartPage() {
 
     if (!isAuthenticated) {
       toast.warning('Inicia sesión para finalizar tu compra');
+      setCheckoutPending(true);
       openAuthModal(false);
 
       return;
@@ -134,35 +119,24 @@ function CartPage() {
     processOrder();
   };
 
-  const handleLoginSuccess = async () => {
-    const token = localStorage.getItem('token');
+  const handleLoginSuccess = (session) => {
+    setShowLoginModal(false);
+    setCheckoutPending(false);
 
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        const userRole = decoded.role || decoded.Role || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+    if (session.role === 'admin') {
+      toast.success('Bienvenido Administrador');
+      navigate('/admin/home');
 
-        if (userRole === 'Admin') {
-          setShowLoginModal(false);
-          toast.success('Bienvenido Administrador');
-          navigate('/admin/home');
-
-          return;
-        }
-      } catch (error) {
-        console.error('Error al verificar rol en login:', error);
-      }
+      return;
     }
 
-    setShowLoginModal(false);
-    toast.success('Sesión iniciada. Procesando tu pedido...');
+    toast.success('Sesión iniciada.');
 
-    setTimeout(() => {
-      processOrder();
-    }, 100);
+    if (checkoutPending) processOrder(session.customerId);
   };
 
   const handleCloseModal = () => {
+    setCheckoutPending(false);
     setShowLoginModal(false);
   };
 
