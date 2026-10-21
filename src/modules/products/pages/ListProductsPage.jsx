@@ -17,6 +17,7 @@ function ListProductsPage() {
   const [status, setStatus] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [total, setTotal] = useState(0);
   const [products, setProducts] = useState([]);
@@ -63,16 +64,12 @@ function ListProductsPage() {
       isSubscribed = false;
     };
     // 3. Pasa el arreglo de dependencias completo
-  }, [appliedSearchTerm, status, pageNumber, pageSize]);
-
-  //const handleSearch = () => {
-  //  setPageNumber(1);
-  //  fetchProducts();
-  //};
+  }, [appliedSearchTerm, status, pageNumber, pageSize, reloadKey]);
 
   const handleSearch = () => {
     setPageNumber(1);
     setAppliedSearchTerm(searchTerm);
+    setReloadKey((key) => key + 1);
   };
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize));

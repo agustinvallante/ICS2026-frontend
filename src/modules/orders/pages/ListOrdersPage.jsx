@@ -35,6 +35,7 @@ function ListOrdersPage() {
   const [status, setStatus] = useState('');
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const [total, setTotal] = useState(0);
   const [orders, setOrders] = useState([]);
@@ -68,13 +69,14 @@ function ListOrdersPage() {
     };
 
     fetchOrders();
-  }, [appliedSearchTerm, status, pageNumber, pageSize]);
+  }, [appliedSearchTerm, status, pageNumber, pageSize, reloadKey]);
 
   const totalPages = Math.ceil(total / pageSize);
 
   const handleSearch = () => {
     setPageNumber(1);
     setAppliedSearchTerm(searchTerm);
+    setReloadKey((key) => key + 1);
   };
 
   return (
