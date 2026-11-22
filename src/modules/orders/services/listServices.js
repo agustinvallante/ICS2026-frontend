@@ -6,8 +6,9 @@ export const getOrderById = async (id, signal) => {
   return response.data;
 };
 
-export const listOrders = async (filters = {}) => {
+export const listOrders = async (filters = {}, signal) => {
   const response = await instance.get('/api/orders', {
+    signal,
     params:{
       pageNumber: filters.page || 1,
       pageSize: filters.pageSize || 10,

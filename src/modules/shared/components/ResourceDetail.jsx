@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Button from './Button';
 import Card from './Card';
 
 const uuidPattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 function ResourceDetail({ id, title, resourceLabel, backTo, backLabel, load, children }) {
+  const { search } = useLocation();
   const validId = uuidPattern.test(id);
   const [result, setResult] = useState(null);
   const [attempt, setAttempt] = useState(0);
@@ -62,7 +63,7 @@ function ResourceDetail({ id, title, resourceLabel, backTo, backLabel, load, chi
 
   return (
     <section className="mx-auto w-full max-w-4xl space-y-4 text-base">
-      <Link className="inline-block rounded py-2 font-medium text-purple-700 hover:underline" to={backTo}>
+      <Link className="inline-block rounded py-2 font-medium text-purple-700 hover:underline" to={{ pathname: backTo, search }}>
         <span aria-hidden="true">← </span>{backLabel}
       </Link>
       <Card className="min-w-0 space-y-4 border-gray-100 shadow-sm sm:p-6">

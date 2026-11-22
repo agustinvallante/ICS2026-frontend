@@ -2,12 +2,12 @@ import { useParams } from 'react-router-dom';
 import ResourceDetail from '../../shared/components/ResourceDetail';
 import { formatPrice } from '../../shared/formatPrice';
 import OrderStatusBadge from '../components/OrderStatusBadge';
+import { formatOrderDate } from '../helpers/formatOrderDate';
 import { getOrderById } from '../services/listServices';
-
-const dateOptions = { dateStyle: 'medium', timeStyle: 'short' };
 
 function OrderDetails({ order }) {
   const items = order.items ?? [];
+  const orderDate = formatOrderDate(order.date);
 
   return (
     <>
@@ -23,7 +23,12 @@ function OrderDetails({ order }) {
         <div>
           <dt className="text-sm text-gray-600">Fecha</dt>
           <dd className="font-medium">
-            <time dateTime={order.date}>{new Date(order.date).toLocaleString('es-AR', dateOptions)}</time>
+            {orderDate ? (
+              <>
+                <time dateTime={order.date}>{orderDate.text}</time>
+                {!orderDate.hasOffset && <span className="block text-sm font-normal text-gray-600">Zona horaria no informada</span>}
+              </>
+            ) : 'Fecha no disponible'}
           </dd>
         </div>
         <div>

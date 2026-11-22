@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Card from '../../shared/components/Card';
+import useListQuery from '../../shared/hooks/useListQuery';
 import { getAdminProducts } from '../services/list';
 
 const productStatusOptions = [
@@ -8,22 +9,21 @@ const productStatusOptions = [
   { label: 'Activo', value: 'true' },
   { label: 'Inactivo', value: 'false' },
 ];
+const statuses = productStatusOptions.map(({ value }) => value);
+const pageSizes = [5, 10, 20, 50];
 
 function ListProductsPage() {
   const navigate = useNavigate();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
-  const [status, setStatus] = useState('');
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const { appliedSearchTerm, status, pageNumber, pageSize, listQuery, updateQuery } = useListQuery({
+    statuses, pageSizes, defaultPageSize: 5,
+  });
   const [reloadKey, setReloadKey] = useState(0);
 
   const [total, setTotal] = useState(0);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // 1. Abre correctamente el useEffect
   useEffect(() => {
     let isSubscribed = true;
 
@@ -32,7 +32,6 @@ function ListProductsPage() {
         setLoading(true);
         const statusToSend = status === '' ? null : status;
 
-        // 2. Usa appliedSearchTerm (NO searchTerm)
         const result = await getAdminProducts(appliedSearchTerm, statusToSend, pageNumber, pageSize);
         const { data, error } = result;
 
@@ -63,13 +62,13 @@ function ListProductsPage() {
     return () => {
       isSubscribed = false;
     };
-    // 3. Pasa el arreglo de dependencias completo
   }, [appliedSearchTerm, status, pageNumber, pageSize, reloadKey]);
 
-  const handleSearch = () => {
-    setPageNumber(1);
-    setAppliedSearchTerm(searchTerm);
-    setReloadKey((key) => key + 1);
+  const handleSearch = (event) => {
+    event.preventDefault();
+    const search = new FormData(event.currentTarget).get('search');
+
+    if (!updateQuery({ search, page: 1 })) setReloadKey((key) => key + 1);
   };
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / pageSize));
@@ -97,18 +96,20 @@ function ListProductsPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex flex-1 gap-2 relative">
+            <form className="flex flex-1 gap-2 relative" onSubmit={handleSearch}>
               <input
+                key={appliedSearchTerm}
                 type="text"
+                name="search"
                 placeholder="Buscar"
+                aria-label="Buscar productos"
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                defaultValue={appliedSearchTerm}
               />
 
               <button
-                onClick={handleSearch}
+                type="submit"
+                aria-label="Aplicar búsqueda de productos"
                 className="bg-purple-100 text-purple-700 p-2 rounded-md hover:bg-purple-200 flex items-center justify-center w-10 h-10"
               >
                 <svg
@@ -126,15 +127,13 @@ function ListProductsPage() {
                   />
                 </svg>
               </button>
-            </div>
+            </form>
 
             <select
               className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 min-w-[220px]"
+              aria-label="Estado del producto"
               value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setPageNumber(1);
-              }}
+              onChange={(e) => updateQuery({ status: e.target.value, page: 1 })}
             >
               {productStatusOptions.map((opt) => (
                 <option key={opt.label} value={opt.value}>
@@ -168,7 +167,7 @@ function ListProductsPage() {
                 {product.id && (
                   <Link
                     className="shrink-0 bg-purple-100 text-purple-700 px-3 sm:px-6 py-2 rounded-md text-sm font-medium hover:bg-purple-200 transition"
-                    to={encodeURIComponent(product.id)}
+                    to={{ pathname: encodeURIComponent(product.id), search: listQuery }}
                     aria-label={`Ver detalle de ${product.name}`}
                   >
                     Ver detalle
@@ -186,7 +185,7 @@ function ListProductsPage() {
           <div className="flex justify-between items-center text-sm text-gray-600 sm:hidden py-4 w-full px-4">
             <button
               disabled={pageNumber === 1}
-              onClick={() => setPageNumber(p => p - 1)}
+              onClick={() => updateQuery({ page: pageNumber - 1 })}
               className="disabled:opacity-30"
             >
             ← Anterior
@@ -194,7 +193,7 @@ function ListProductsPage() {
 
             <button
               disabled={pageNumber >= totalPages}
-              onClick={() => setPageNumber(p => p + 1)}
+              onClick={() => updateQuery({ page: pageNumber + 1 })}
               className="disabled:opacity-30"
             >
             Siguiente →
@@ -204,7 +203,7 @@ function ListProductsPage() {
           <div className="hidden sm:flex justify-center items-center gap-4 py-4 text-sm text-gray-600">
             <button
               disabled={pageNumber === 1}
-              onClick={() => setPageNumber(p => p - 1)}
+              onClick={() => updateQuery({ page: pageNumber - 1 })}
               className="hover:text-black disabled:opacity-30 disabled:hover:text-gray-600 flex items-center gap-1"
             >
             ← Anterior
@@ -216,7 +215,7 @@ function ListProductsPage() {
 
             <button
               disabled={pageNumber >= totalPages}
-              onClick={() => setPageNumber(p => p + 1)}
+              onClick={() => updateQuery({ page: pageNumber + 1 })}
               className="hover:text-black disabled:opacity-30 disabled:hover:text-gray-600 flex items-center gap-1"
             >
             Siguiente →
@@ -225,17 +224,12 @@ function ListProductsPage() {
             <div className="flex items-center gap-2 border-l sm:pl-4">
               <span className="text-xs text-gray-400">Ver:</span>
               <select
+                aria-label="Productos por página"
                 value={pageSize}
-                onChange={(e) => {
-                  setPageNumber(1);
-                  setPageSize(Number(e.target.value));
-                }}
+                onChange={(e) => updateQuery({ pageSize: Number(e.target.value), page: 1 })}
                 className="border border-gray-200 rounded p-1 text-sm bg-white focus:outline-none focus:border-purple-300 cursor-pointer"
               >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
+                {pageSizes.map((size) => <option key={size} value={size}>{size}</option>)}
               </select>
             </div>
           </div>
