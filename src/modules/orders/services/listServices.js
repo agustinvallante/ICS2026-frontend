@@ -1,5 +1,11 @@
 import { instance } from '../../shared/api/axiosInstance';
 
+export const getOrderById = async (id, signal) => {
+  const response = await instance.get(`/api/orders/${encodeURIComponent(id)}`, { signal });
+
+  return response.data;
+};
+
 export const listOrders = async (filters = {}) => {
   const response = await instance.get('/api/orders', {
     params:{

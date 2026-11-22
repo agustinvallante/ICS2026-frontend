@@ -1,5 +1,11 @@
 import { instance } from '../../shared/api/axiosInstance';
 
+export const getProductById = async (id, signal) => {
+  const response = await instance.get(`/api/products/${encodeURIComponent(id)}`, { signal });
+
+  return response.data;
+};
+
 export const getPublicProducts = async (searchTerm, pageNumber, pageSize) => {
   const params = {
     search: searchTerm,

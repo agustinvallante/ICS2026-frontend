@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Card from '../../shared/components/Card';
 import { getAdminProducts } from '../services/list';
 
@@ -154,7 +154,7 @@ function ListProductsPage() {
         ) : (
           products.map((product) => (
             <Card key={product.id || product.sku} className="hover:shadow-md transition-shadow bg-white rounded-lg p-4 border border-gray-100">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-3">
 
                 <div className="flex flex-col">
                   <h3 className="text-lg font-bold text-gray-900">
@@ -165,12 +165,15 @@ function ListProductsPage() {
                   </p>
                 </div>
 
-                <button
-                  className="bg-purple-100 text-purple-700 px-6 py-2 rounded-md font-medium hover:bg-purple-200 transition"
-                  onClick={() => console.log('Ver detalle', product.id)}
-                >
-                Ver
-                </button>
+                {product.id && (
+                  <Link
+                    className="shrink-0 bg-purple-100 text-purple-700 px-3 sm:px-6 py-2 rounded-md text-sm font-medium hover:bg-purple-200 transition"
+                    to={encodeURIComponent(product.id)}
+                    aria-label={`Ver detalle de ${product.name}`}
+                  >
+                    Ver detalle
+                  </Link>
+                )}
 
               </div>
             </Card>
