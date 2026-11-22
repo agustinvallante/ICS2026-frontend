@@ -45,6 +45,12 @@ function ListOrdersPage() {
         const listaFinal = data?.items || data?.productItems || [];
 
         if (!controller.signal.aborted) {
+          if (pageNumber > 1 && listaFinal.length === 0) {
+            updateQuery({ page: 1 }, { replace: true });
+
+            return;
+          }
+
           setTotal(data?.total || 0);
           setOrders(listaFinal);
         }
@@ -60,7 +66,7 @@ function ListOrdersPage() {
     fetchOrders();
 
     return () => controller.abort();
-  }, [appliedSearchTerm, status, pageNumber, pageSize, reloadKey]);
+  }, [appliedSearchTerm, status, pageNumber, pageSize, reloadKey, updateQuery]);
 
   const totalPages = Math.ceil(total / pageSize);
 

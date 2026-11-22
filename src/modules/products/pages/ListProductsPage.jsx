@@ -41,6 +41,13 @@ function ListProductsPage() {
           const lista = data?.productItems || data?.items || [];
           const totalItems = data?.total || 0;
 
+          // La API también devuelve 204 si existen resultados en otras páginas.
+          if (pageNumber > 1 && lista.length === 0) {
+            updateQuery({ page: 1 }, { replace: true });
+
+            return;
+          }
+
           setProducts(lista);
           setTotal(totalItems);
         }
@@ -62,7 +69,7 @@ function ListProductsPage() {
     return () => {
       isSubscribed = false;
     };
-  }, [appliedSearchTerm, status, pageNumber, pageSize, reloadKey]);
+  }, [appliedSearchTerm, status, pageNumber, pageSize, reloadKey, updateQuery]);
 
   const handleSearch = (event) => {
     event.preventDefault();

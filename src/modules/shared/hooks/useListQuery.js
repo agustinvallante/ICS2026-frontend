@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 // El backend calcula el desplazamiento de la página con un entero de 32 bits.
@@ -15,7 +16,7 @@ export default function useListQuery({ statuses, pageSizes, defaultPageSize }) {
   const pageNumber = Number.isInteger(requestedPage) && requestedPage > 0
     && (requestedPage - 1) * pageSize <= maxOffset ? requestedPage : 1;
 
-  const updateQuery = (changes) => {
+  const updateQuery = useCallback((changes, { replace = false } = {}) => {
     const next = new URLSearchParams(params);
 
     for (const [key, value] of Object.entries(changes)) {
@@ -29,10 +30,10 @@ export default function useListQuery({ statuses, pageSizes, defaultPageSize }) {
     if (next.toString() === listQuery) return false;
 
     // Los controles siguientes deben leer los parámetros recién aplicados.
-    setParams(next, { flushSync: true });
+    setParams(next, { flushSync: true, replace });
 
     return true;
-  };
+  }, [defaultPageSize, listQuery, params, setParams]);
 
   return { appliedSearchTerm, status, pageNumber, pageSize, listQuery, updateQuery };
 }
