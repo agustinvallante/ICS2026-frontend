@@ -7,8 +7,10 @@ import { Toaster } from 'sonner';
 const LoginPage = lazy(() => import('./modules/auth/pages/LoginPage'));
 const Dashboard = lazy(() => import('./modules/templates/components/Dashboard'));
 const ListOrdersPage = lazy(() => import('./modules/orders/pages/ListOrdersPage'));
+const OrderDetailPage = lazy(() => import('./modules/orders/pages/OrderDetailPage'));
 const Home = lazy(() => import('./modules/home/pages/Home'));
 const ListProductsPage = lazy(() => import('./modules/products/pages/ListProductsPage'));
+const ProductDetailPage = lazy(() => import('./modules/products/pages/ProductDetailPage'));
 const CreateProductPage = lazy(() => import('./modules/products/pages/CreateProductPage'));
 const ClientProductsPage = lazy(() => import('./modules/products/pages/ClientProductsPage'));
 const CartPage = lazy(() => import('./modules/orders/pages/CartPage'));
@@ -44,7 +46,9 @@ function App() {
         { path: '/admin/home', element: <Home /> },
         { path: '/admin/products', element: <ListProductsPage /> },
         { path: '/admin/products/create', element: <CreateProductPage /> },
+        { path: '/admin/products/:id', element: <ProductDetailPage /> },
         { path: '/admin/orders', element: <ListOrdersPage /> },
+        { path: '/admin/orders/:id', element: <OrderDetailPage /> },
       ],
     },
   ]);

@@ -1,40 +1,26 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '../../shared/components/Button';
 import Card from '../../shared/components/Card';
+import useListQuery from '../../shared/hooks/useListQuery';
+import OrderStatusBadge from '../components/OrderStatusBadge';
 import { listOrders } from '../services/listServices';
 
-const statusLabels = {
-  'PENDING': 'Pendiente',
-  'PROCESSING': 'Procesando',
-  'SHIPPED': 'Enviado',
-  'DELIVERED': 'Entregado',
-  'CANCELLED': 'Cancelado',
-};
-
-const getStatusChipClass = (status) => {
-  switch (status) {
-    case 'PENDING':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'PROCESSING':
-      return 'bg-blue-100 text-blue-800';
-    case 'SHIPPED':
-      return 'bg-indigo-100 text-indigo-800';
-    case 'DELIVERED':
-      return 'bg-green-100 text-green-800';
-    case 'CANCELLED':
-      return 'bg-red-100 text-red-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
+const orderStatusOptions = [
+  { value: '', label: 'Estado de Orden' },
+  { value: '1', label: 'Pendientes' },
+  { value: '2', label: 'Procesando' },
+  { value: '3', label: 'Enviadas' },
+  { value: '4', label: 'Entregadas' },
+  { value: '5', label: 'Canceladas' },
+];
+const statuses = orderStatusOptions.map(({ value }) => value);
+const pageSizes = [5, 10, 20];
 
 function ListOrdersPage() {
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
-  const [status, setStatus] = useState('');
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const { appliedSearchTerm, status, pageNumber, pageSize, listQuery, updateQuery } = useListQuery({
+    statuses, pageSizes, defaultPageSize: 10,
+  });
   const [reloadKey, setReloadKey] = useState(0);
 
   const [total, setTotal] = useState(0);
@@ -42,6 +28,8 @@ function ListOrdersPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchOrders = async () => {
       try {
         setLoading(true);
@@ -50,33 +38,43 @@ function ListOrdersPage() {
           page: pageNumber,
           pageSize,
           search: appliedSearchTerm,
+          status,
         };
 
-        if (status !== '') {
-          filters.status = status;
-        }
-
-        const data = await listOrders(filters);
+        const data = await listOrders(filters, controller.signal);
         const listaFinal = data?.items || data?.productItems || [];
 
-        setTotal(data?.total || 0);
-        setOrders(listaFinal);
+        if (!controller.signal.aborted) {
+          if (pageNumber > 1 && listaFinal.length === 0) {
+            updateQuery({ page: 1 }, { replace: true });
+
+            return;
+          }
+
+          setTotal(data?.total || 0);
+          setOrders(listaFinal);
+        }
       } catch (error) {
-        console.error('Error al cargar órdenes:', error);
+        if (!controller.signal.aborted) {
+          console.error('Error al cargar órdenes:', error);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     fetchOrders();
-  }, [appliedSearchTerm, status, pageNumber, pageSize, reloadKey]);
+
+    return () => controller.abort();
+  }, [appliedSearchTerm, status, pageNumber, pageSize, reloadKey, updateQuery]);
 
   const totalPages = Math.ceil(total / pageSize);
 
-  const handleSearch = () => {
-    setPageNumber(1);
-    setAppliedSearchTerm(searchTerm);
-    setReloadKey((key) => key + 1);
+  const handleSearch = (event) => {
+    event.preventDefault();
+    const search = new FormData(event.currentTarget).get('search');
+
+    if (!updateQuery({ search, page: 1 })) setReloadKey((key) => key + 1);
   };
 
   return (
@@ -88,19 +86,21 @@ function ListOrdersPage() {
         </div>
 
         <div className='flex flex-col sm:flex-row gap-4'>
-          <div className='flex items-center gap-3 w-full relative'>
+          <form className='flex items-center gap-3 w-full relative' onSubmit={handleSearch}>
             <input
-              value={searchTerm}
-              onChange={(evt) => setSearchTerm(evt.target.value)}
+              key={appliedSearchTerm}
+              defaultValue={appliedSearchTerm}
               type="text"
+              name="search"
               placeholder='Buscar ordenes...'
+              aria-label="Buscar órdenes"
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 pl-2 pr-12"
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
             />
 
             <Button
               className='h-10 w-10 flex justify-center items-center absolute right-0 !bg-purple-100 rounded-md hover:bg-purple-200 text-purple-700'
-              onClick={handleSearch}
+              type="submit"
+              aria-label="Aplicar búsqueda de órdenes"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -117,22 +117,15 @@ function ListOrdersPage() {
                 />
               </svg>
             </Button>
-          </div>
+          </form>
 
           <select
-            onChange={evt => {
-              setStatus(evt.target.value);
-              setPageNumber(1);
-            }}
+            aria-label="Estado de la orden"
+            onChange={evt => updateQuery({ status: evt.target.value, page: 1 })}
             className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 min-w-[200px]"
             value={status}
           >
-            <option value="">Estado de Orden</option>
-            <option value="1">Pendientes</option>
-            <option value="2">Procesando</option>
-            <option value="3">Enviadas</option>
-            <option value="4">Entregadas</option>
-            <option value="5">Canceladas</option>
+            {orderStatusOptions.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
           </select>
         </div>
       </Card>
@@ -152,20 +145,19 @@ function ListOrdersPage() {
                   #{order.clientName || order.customerName || 'Consumidor Final'}
                   </h1>
 
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusChipClass(order.status)}`}
-                  >
-                    {statusLabels[order.status] || 'Desconocido'}
-                  </span>
+                  <OrderStatusBadge status={order.status} />
                 </div>
 
                 <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
-                  <Button
-                    className="bg-purple-100 text-purple-700 px-4 py-2 rounded-md font-medium hover:bg-purple-200 transition text-sm w-full sm:w-auto"
-                    onClick={() => console.log('Ver detalle', order.orderId)}
-                  >
-                  Ver
-                  </Button>
+                  {order.orderId && (
+                    <Link
+                      className="bg-purple-100 text-purple-700 px-4 py-2 rounded-md font-medium hover:bg-purple-200 transition text-sm text-center w-full sm:w-auto"
+                      to={{ pathname: encodeURIComponent(order.orderId), search: listQuery }}
+                      aria-label={`Ver detalle de la orden ${order.orderId}`}
+                    >
+                      Ver detalle
+                    </Link>
+                  )}
                 </div>
               </div>
             </Card>
@@ -182,7 +174,7 @@ function ListOrdersPage() {
           <div className="flex justify-between items-center text-sm text-gray-600 sm:hidden py-4 w-full px-4 border-t border-gray-100 mt-2">
             <button
               disabled={pageNumber === 1}
-              onClick={() => setPageNumber(p => p - 1)}
+              onClick={() => updateQuery({ page: pageNumber - 1 })}
               className="disabled:opacity-30 font-medium"
             >
             ← Anterior
@@ -194,7 +186,7 @@ function ListOrdersPage() {
 
             <button
               disabled={pageNumber >= totalPages}
-              onClick={() => setPageNumber(p => p + 1)}
+              onClick={() => updateQuery({ page: pageNumber + 1 })}
               className="disabled:opacity-30 font-medium"
             >
             Siguiente →
@@ -204,7 +196,7 @@ function ListOrdersPage() {
           <div className="hidden sm:flex justify-center items-center gap-4 py-4 text-sm text-gray-600 mt-2">
             <button
               disabled={pageNumber === 1}
-              onClick={() => setPageNumber(p => p - 1)}
+              onClick={() => updateQuery({ page: pageNumber - 1 })}
               className="hover:text-black disabled:opacity-30 disabled:hover:text-gray-600 flex items-center gap-1 transition-colors"
             >
             ← Anterior
@@ -216,7 +208,7 @@ function ListOrdersPage() {
 
             <button
               disabled={pageNumber >= totalPages}
-              onClick={() => setPageNumber(p => p + 1)}
+              onClick={() => updateQuery({ page: pageNumber + 1 })}
               className="hover:text-black disabled:opacity-30 disabled:hover:text-gray-600 flex items-center gap-1 transition-colors"
             >
             Siguiente →
@@ -225,16 +217,12 @@ function ListOrdersPage() {
             <div className="flex items-center gap-2 border-l border-gray-300 pl-4 ml-2">
               <span className="text-xs text-gray-400">Ver:</span>
               <select
+                aria-label="Órdenes por página"
                 value={pageSize}
-                onChange={(evt) => {
-                  setPageNumber(1);
-                  setPageSize(Number(evt.target.value));
-                }}
+                onChange={(evt) => updateQuery({ pageSize: Number(evt.target.value), page: 1 })}
                 className="border border-gray-200 rounded p-1 text-sm bg-white focus:outline-none focus:border-purple-300 cursor-pointer hover:shadow-sm transition-shadow"
               >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
+                {pageSizes.map((size) => <option key={size} value={size}>{size}</option>)}
               </select>
             </div>
           </div>
